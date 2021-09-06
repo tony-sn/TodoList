@@ -269,7 +269,7 @@ ul.list#done-list {
   position: relative;
 }
 
-.card-todo h3.done::before {
+.card-todo h4.done::before {
   content: "";
   width: 150px;
   height: 1px;
