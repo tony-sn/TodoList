@@ -1,87 +1,120 @@
-const form = document.querySelector("#new-todo-form")
-const todoInput = document.querySelector("#todo-input")
-const todoList = document.querySelector("#todo-list")
-const template = document.querySelector("#list-item-template")
-const toggleBtn = document.querySelector(".toggle-btn")
-const filterBtn = document.querySelector(".filter-btn")
-const LOCAL_STORAGE_PREFIX = "ADVANCED_TODO_LIST"
-const TODOS_STORAGE_KEY = `${LOCAL_STORAGE_PREFIX}-todos`
-let todos = loadTodos()
-todos.forEach(renderTodo)
-
-todoList.addEventListener("change", e => {
-  if (!e.target.matches(`[data-list-item-checkbox]`)) return
-
-  const parent = e.target.closest(".list-item")
-  const todoId = parent.dataset.todoId
-  const todo = todos.find(t => t.id === todoId)
-  todo.complete = e.target.checked
-  saveTodos()
-})
-
-todoList.addEventListener("click", e => {
-  if (!e.target.matches(`[data-button-delete]`)) return
-
-  const parent = e.target.closest(".list-item")
-  const todoId = parent.dataset.todoId
-  parent.remove()
-  todos = todos.filter(todo => todo.id !== todoId)
-  saveTodos()
-})
-
-form.addEventListener("submit", e => {
-  e.preventDefault()
-
-  const todoName = todoInput.value
-  if (todoName === "") return
-  const newTodo = {
-    name: todoName,
-    complete: false,
-    id: new Date().valueOf().toString(),
+class Todos {
+  constructor(STORAGE_KEY) {
+    this.STORAGE_KEY = STORAGE_KEY
+    this.list = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}
   }
-  todos.push(newTodo)
-  renderTodo(newTodo)
-  saveTodos()
-  todoInput.value = ""
-})
 
-function renderTodo(todo) {
-  const templateClone = template.content.cloneNode(true)
-  const listItem = templateClone.querySelector(".list-item")
-  listItem.dataset.todoId = todo.id
-  const textElement = templateClone.querySelector("[data-list-item-text]")
-  textElement.innerText = todo.name
-  const checkbox = templateClone.querySelector("[data-list-item-checkbox]")
-  checkbox.checked = todo.complete
-  todoList.appendChild(templateClone)
+  add(text, isCompleted = false) {
+    if (text === "") return
+    const id = Date.now().toString()
+    this.list[id] = { text, isCompleted }
+    this.updateLocalStorage()
+  }
+
+  toggleChecked(id) {
+    this.list[id].isCompleted = !this.list[id].isCompleted
+    this.updateLocalStorage()
+  }
+
+  remove(id) {
+    delete this.list[id]
+    this.updateLocalStorage()
+  }
+
+  updateLocalStorage() {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.list))
+  }
 }
 
-function saveTodos() {
-  localStorage.setItem(TODOS_STORAGE_KEY, JSON.stringify(todos))
+const form = document.querySelector("#new-todo-form")
+const todoList = document.querySelector("#todo-list")
+const doneList = document.querySelector("#done-list")
+const input = document.querySelector("#todo-input")
+const template = document.querySelector("template")
+const filterBtn = document.querySelector(".filter-btn")
+const toggleBtn = filterBtn.querySelector(".toggle-btn")
+const STORAGE_KEY_PREFIX = "TODO_LIST_WITH_LOCAL_STORAGE"
+const STORAGE_KEY = `${STORAGE_KEY_PREFIX}-todoList`
+const todos = new Todos(STORAGE_KEY)
+
+renderTodos()
+today()
+
+form.onsubmit = event => {
+  todos.add(input.value)
+  renderTodos()
+
+  event.preventDefault()
+  input.value = ""
 }
 
-function loadTodos() {
-  const todosString = localStorage.getItem(TODOS_STORAGE_KEY)
-  return JSON.parse(todosString) || []
+// Render all stored items to either todo-list or done-list
+// based on their isComplete status
+function renderTodos() {
+  todoList.innerHTML = ""
+  doneList.innerHTML = ""
+  for (const [id, { text, isCompleted }] of Object.entries(todos.list)) {
+    const todo = createTodoItem(id, text, isCompleted)
+    if (isCompleted) {
+      doneList.prepend(todo)
+    } else {
+      todoList.prepend(todo)
+    }
+  }
+}
+
+// Create the HTML for a new item using the template
+function createTodoItem(id, text, isCompleted = false) {
+  const clone = template.content.cloneNode(true)
+  const listItem = clone.querySelector(".list-item")
+  const todoText = listItem.querySelector("[data-list-item-text]")
+  const checkbox = listItem.querySelector("[data-list-item-checkbox]")
+  const delBtn = listItem.querySelector(".remove")
+  listItem.dataset.id = id
+  todoText.textContent = text
+  delBtn.onclick = deleteTodo
+  checkbox.onchange = toggleComplete
+  checkbox.checked = isCompleted
+  return listItem
+}
+
+// Update the storage when item is completed or uncompleted,
+// so item is moved to appropriate list and styled differently.
+function toggleComplete(event) {
+  const todoItem = event.target.closest(".list-item")
+  const id = todoItem.dataset.id
+
+  todos.toggleChecked(id)
+  todoItem.remove()
+
+  if (todos.list[id].isCompleted) {
+    doneList.prepend(todoItem)
+  } else {
+    todoList.prepend(todoItem)
+  }
+}
+
+// Delete item from the dataset and remove from list
+function deleteTodo(event) {
+  const todoItem = event.target.closest(".list-item")
+  todos.remove(todoItem.dataset.id)
+  todoItem.remove()
 }
 
 function today() {
-  const dateInput = document.querySelector(`#date-input`)
+  const dateInput = document.querySelector("#date-input")
   let today = new Date()
-  let date = today.getDate().toString().toString().padStart(2, 0)
+  let date = today.getDate().toString().padStart(2, 0)
   let month = (today.getMonth() + 1).toString().padStart(2, 0)
   let year = today.getFullYear().toString()
 
   today = `${year}-${month}-${date}`
-
   dateInput.value = today
-  // return dateInput.value
+  return today
 }
 
-today()
+function toggleOpen() {}
 
 toggleBtn.addEventListener("click", () => {
-  filterBtn.classList.add("open")
-  filterBtn.classList.remove("open")
-  filterBtn.children.classList.remove("open")
+  filterBtn.classList.toggle("open")
 })

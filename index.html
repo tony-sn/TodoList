@@ -42,17 +42,15 @@
           </form>
         </div>
         <div class="card-todo">
-          <ul id="todo-list" class="list">
-          </ul>
-          <ul id="done-list" class="list">
-          </ul>
+          <h3>Todo</h3>
+          <ul id="todo-list" class="list"></ul>
+          <h3 class="done">Done</h3>
+          <ul id="done-list" class="list"></ul>
         </div>
 
       </div>
     </div>
   </div>
-
-
 
   <template id="list-item-template">
     <li class="list-item">
@@ -60,7 +58,7 @@
         <input type="checkbox" data-list-item-checkbox>
         <span data-list-item-text></span>
       </label>
-      <button data-button-delete>Delete</button>
+      <button class="remove" data-button-delete><i class="fa fa-trash-alt"></i></button>
     </li>
   </template>
 </body>
