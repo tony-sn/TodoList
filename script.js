@@ -113,8 +113,6 @@ function today() {
   return today
 }
 
-function toggleOpen() {}
-
 toggleBtn.addEventListener("click", () => {
   filterBtn.classList.toggle("open")
 })
